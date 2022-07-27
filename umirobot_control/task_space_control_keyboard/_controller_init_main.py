@@ -9,7 +9,7 @@ from umirobot_control.task_space_control_keyboard._umirobot_task_space_control i
 from umirobot_control.commons.controller_state_sm_manager import ControllerShmManager
 
 
-def umirobot_communication_loop_under_subprocess(controller_shm_manager_args, dc):
+def umirobot_communication_loop_under_subprocess(controller_shm_manager_args, umi_cfg):
     controller_shm_manager_ = ControllerShmManager(init_args=controller_shm_manager_args)
 
     with UMIRobot() as umirobot, mm.SharedMemoryManager() as smm:
@@ -20,7 +20,10 @@ def umirobot_communication_loop_under_subprocess(controller_shm_manager_args, dc
         # Receiver
         shared_memory_receiver_process = mp.Process(
             target=run,
-            args=(shared_memory_provider.get_shared_memory_receiver_initializer_args(), controller_shm_manager_args, lock)
+            args=(shared_memory_provider.get_shared_memory_receiver_initializer_args(),
+                  controller_shm_manager_args,
+                  lock,
+                  umi_cfg)
         )
         shared_memory_receiver_process.start()
 

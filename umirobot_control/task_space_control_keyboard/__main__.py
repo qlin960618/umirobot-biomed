@@ -13,6 +13,7 @@ import multiprocessing as mp
 import os
 import sys
 import numpy as np
+import dqrobotics as dql
 
 import umirobot_control.commons.controller_config as control_cfg
 from umirobot_control.commons.controller_state_sm_manager import ControllerShmManager
@@ -27,6 +28,15 @@ from PyQt6.QtWidgets import QApplication, QWidget
 KEYPRESS_T_DELTA = 0.005
 KEYPRESS_GRIP_DELTA = np.radians(5)
 
+umi_configuration = {
+    "controller_gain": 4.0,
+    "damping": 0.01,
+    "alpha": 0.999,  # Soft priority between translation and rotation [0,1] ~1 Translation, ~0 Rotation
+    "use_real_master": False,
+    "use_real_umirobot": False,
+    "umirobot_port": "COM4"
+}
+
 
 class ControllerUI(QWidget):
     def __init__(self, args_in):
@@ -36,10 +46,15 @@ class ControllerUI(QWidget):
         self.load_ui()
 
         # initialize stored variable
+        # translation
         self.t_offset = np.zeros([3])
-        self.r_offset = np.zeros([4])
-        self.r_offset[0] = 1
-        self.gripper = 0
+        # rotation
+        r_init = np.cos(np.radians(90/2))+np.sin(np.radians(90/2))*dql.i_
+        r_init = r_init * (np.cos(np.radians(180/2))+np.sin(np.radians(180/2))*dql.k_)
+        # r_init = dql.DQ([1])  # np.sin(np.radians(90/2))+np.cos(np.radians(90/2))*dql.j_
+        self.r_offset = r_init.vec4()
+
+        dself.gripper = 0
         self.init_args["controller_sm_manager"].send_data(self.t_offset, self.r_offset, self.gripper)
 
     def load_ui(self):
@@ -89,7 +104,7 @@ def main(args_in_):
 
     controller_process = mp.Process(
         target=umirobot_communication_loop_under_subprocess,
-        args=(controller_shm_manager.get_shm_initializer_arg(), None)
+        args=(controller_shm_manager.get_shm_initializer_arg(), umi_configuration)
     )
     controller_process.start()
 

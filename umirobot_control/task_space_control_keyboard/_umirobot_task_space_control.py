@@ -22,14 +22,7 @@ from umirobot_control.commons import UMIRobotCSimRobot, normalize_potentiometer_
 
 from umirobot_control.commons.controller_state_sm_manager import ControllerShmManager
 
-configuration = {
-    "controller_gain": 4.0,
-    "damping": 0.01,
-    "alpha": 0.999,  # Soft priority between translation and rotation [0,1] ~1 Translation, ~0 Rotation
-    "use_real_master": False,
-    "use_real_umirobot": True,
-    "umirobot_port": "COM4"
-}
+
 
 
 def get_gripper_value_from_real_master(potentiometer_values):
@@ -74,7 +67,10 @@ def get_xd_from_real_master(potentiometer_values, x_init):
 def get_xd_from_UI_controller(xt, xr, x_init):
     t_init = translation(x_init)
     r_init = rotation(x_init)
-    xd_relative = DQ(xr) + 0.5 * E_ * (DQ(xt)+t_init) * DQ(xr)
+    td = t_init + DQ(xt)
+    # rd = r_init * DQ(xr) * r_init.inv()
+    rd = DQ(xr)
+    xd_relative = rd + 0.5 * E_ * td * rd
     return xd_relative
 
 
@@ -150,8 +146,8 @@ def control_loop(umirobot_smr, controller_smr, cfg):
 
             # Joint 5 and 6 override for differeically driven gripper
             q_robot = q.copy()
-            q_robot[4]  = q[4] + gripper_value_d
-            new_q6      = -q[4] + gripper_value_d
+            q_robot[4] = q[4] + gripper_value_d
+            new_q6 = -q[4] + gripper_value_d
             umirobot_csim.send_gripper_value_to_csim(new_q6)
 
             # Update vrep with the new information we have
@@ -181,7 +177,7 @@ def control_loop(umirobot_smr, controller_smr, cfg):
     csim_interface.disconnect()
 
 
-def run(shared_memory_info, ui_shm_info, lock):
+def run(shared_memory_info, ui_shm_info, lock, configuration):
     umirobot_smr = UMIRobotSharedMemoryReceiver(shared_memory_info, lock)
     controller_smr = ControllerShmManager(init_args=ui_shm_info)
 
