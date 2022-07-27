@@ -8,15 +8,19 @@ warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Gen
 You should have received a copy of the GNU General Public License along with this program. If not,
 see <https://www.gnu.org/licenses/>.
 """
+import time
+
 import numpy as np
 
 from dqrobotics import *
 from math import sin, cos
 from umirobot.shared_memory import UMIRobotSharedMemoryReceiver
-from umirobot_control.task_space_control._umirobot_task_space_controller import UMIRobotTaskSpaceController
+from umirobot_control.task_space_control_keyboard._umirobot_task_space_controller import UMIRobotTaskSpaceController
 from dqrobotics.interfaces.vrep import DQ_VrepInterface as DQ_CoppeliaSimInterface
 from dqrobotics.utils.DQ_Math import rad2deg, deg2rad
 from umirobot_control.commons import UMIRobotCSimRobot, normalize_potentiometer_values
+
+from umirobot_control.commons.controller_state_sm_manager import ControllerShmManager
 
 configuration = {
     "controller_gain": 4.0,
@@ -67,7 +71,14 @@ def get_xd_from_real_master(potentiometer_values, x_init):
     return x_init * xd_relative
 
 
-def control_loop(umirobot_smr, cfg):
+def get_xd_from_UI_controller(xt, xr, x_init):
+    t_init = translation(x_init)
+    r_init = rotation(x_init)
+    xd_relative = DQ(xr) + 0.5 * E_ * (DQ(xt)+t_init) * DQ(xr)
+    return xd_relative
+
+
+def control_loop(umirobot_smr, controller_smr, cfg):
     # Instantiate a CoppeliaSim Interface
     csim_interface = DQ_CoppeliaSimInterface()
 
@@ -82,6 +93,10 @@ def control_loop(umirobot_smr, cfg):
             # If connection fails, disconnect and throw exception
             csim_interface.disconnect_all()
             raise Exception("Unable to connect to CoppeliaSim.")
+
+        # wait for UI to initialized
+        while controller_smr.get_data()[0] is None:
+            pass
 
         # This object is used to communicate more easily with VREP
         umirobot_csim = UMIRobotCSimRobot(csim_interface=csim_interface)
@@ -113,9 +128,14 @@ def control_loop(umirobot_smr, cfg):
         q = q_init
         while not umirobot_smr.get_shutdown_flag():
             # Get xd from CoppeliaSim
-            xd = umirobot_csim.get_xd_from_csim()
+            # xd = umirobot_csim.get_xd_from_csim()
             # Get the desired gripper value from CoppeliaSim
-            gripper_value_d = umirobot_csim.get_gripper_value_from_csim()
+            # gripper_value_d = umirobot_csim.get_gripper_value_from_csim()
+
+            xt, xr, gripper_value_d = controller_smr.get_data()
+            xd = get_xd_from_UI_controller(xt, xr, x_init)
+            # print("translation:", xt, xr)
+            umirobot_csim.show_xd_in_csim(xd)
 
             # Alternatively, you can do it like so:
             # potentiometer_values = umirobot_smr.get_potentiometer_values()
@@ -127,6 +147,12 @@ def control_loop(umirobot_smr, cfg):
 
             # Update the current joint positions
             q = q + u * sampling_time
+
+            # Joint 5 and 6 override for differeically driven gripper
+            new_q5 = -q[4] + gripper_value_d
+            new_q6 = q[4] + gripper_value_d
+            q[4] = new_q5
+            umirobot_csim.send_gripper_value_to_csim(new_q6)
 
             # Update vrep with the new information we have
             umirobot_csim.send_q_to_csim(q)
@@ -155,11 +181,12 @@ def control_loop(umirobot_smr, cfg):
     csim_interface.disconnect()
 
 
-def run(shared_memory_info, lock):
+def run(shared_memory_info, ui_shm_info, lock):
     umirobot_smr = UMIRobotSharedMemoryReceiver(shared_memory_info, lock)
+    controller_smr = ControllerShmManager(init_args=ui_shm_info)
 
     try:
-        control_loop(umirobot_smr, cfg=configuration)
+        control_loop(umirobot_smr, controller_smr, cfg=configuration)
         print("task_space_control::run::Control loop ended.")
     except Exception as e:
         print("task_space_control::run::Error::" + str(e))

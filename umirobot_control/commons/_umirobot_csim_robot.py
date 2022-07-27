@@ -20,7 +20,8 @@ class UMIRobotCSimRobot:
                             'UMIRobot_joint_3',
                             'UMIRobot_joint_4',
                             'UMIRobot_joint_5']
-        self.gripper_name = 'UMIRobot_joint_6'
+        self.gripper_joint_name = 'UMIRobot_joint_6'
+        self.gripper_name = 'UMIRobot_joint_gripper'
         self.reference_frame_name = 'UMIRobot_reference_frame'
         self.pose_frame_name = 'x'
         self.desired_pose_frame_name = 'xd'
@@ -36,7 +37,7 @@ class UMIRobotCSimRobot:
         self.csim_interface.set_joint_target_positions(self.joint_names, q)
 
     def send_gripper_value_to_csim(self, gripper_value):
-        self.csim_interface.set_joint_target_position(self.gripper_name, gripper_value)
+        self.csim_interface.set_joint_target_position(self.gripper_joint_name, gripper_value)
 
     def get_gripper_value_from_csim(self):
         return self.csim_interface.get_joint_position(self.gripper_name)

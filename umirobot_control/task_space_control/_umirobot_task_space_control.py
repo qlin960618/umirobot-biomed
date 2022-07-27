@@ -128,6 +128,12 @@ def control_loop(umirobot_smr, cfg):
             # Update the current joint positions
             q = q + u * sampling_time
 
+            # Joint 5 and 6 override for differeically driven gripper
+            new_q5 = -q[4] + gripper_value_d
+            new_q6 = q[4] + gripper_value_d
+            q[4] = new_q5
+            umirobot_csim.send_gripper_value_to_csim(new_q6)
+
             # Update vrep with the new information we have
             umirobot_csim.send_q_to_csim(q)
             umirobot_csim.show_x_in_csim(umirobot_controller.get_last_robot_pose())

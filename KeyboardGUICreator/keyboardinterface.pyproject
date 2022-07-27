@@ -1,3 +1,3 @@
 {
-    "files": ["keyboardinterface.py","ui_form.ui","controller_config.py"]
+    "files": ["keyboardinterface.py","ui_form.ui","controller_config.py","form.ui"]
 }
