@@ -22,9 +22,9 @@ configuration = {
     "controller_gain": 4.0,
     "damping": 0.01,
     "alpha": 0.999,  # Soft priority between translation and rotation [0,1] ~1 Translation, ~0 Rotation
-    "use_real_master": False,
-    "use_real_umirobot": False,
-    "umirobot_port": "COM3"
+    "use_real_master": True,
+    "use_real_umirobot": True,
+    "umirobot_port": "COM4"
 }
 
 
@@ -129,20 +129,20 @@ def control_loop(umirobot_smr, cfg):
             q = q + u * sampling_time
 
             # Joint 5 and 6 override for differeically driven gripper
-            new_q5 = -q[4] + gripper_value_d
-            new_q6 = q[4] + gripper_value_d
-            q[4] = new_q5
+            q_robot = q.copy()
+            q_robot[4]  = q[4] + gripper_value_d
+            new_q6      = -q[4] + gripper_value_d
             umirobot_csim.send_gripper_value_to_csim(new_q6)
 
             # Update vrep with the new information we have
-            umirobot_csim.send_q_to_csim(q)
+            umirobot_csim.send_q_to_csim(q_robot)
             umirobot_csim.show_x_in_csim(umirobot_controller.get_last_robot_pose())
 
             # Update real robot if needed
             if cfg["use_real_umirobot"]:
                 if umirobot_smr.is_open():
                     # Control the gripper somehow
-                    q_temp = np.hstack((q, gripper_value_d))
+                    q_temp = np.hstack((q, new_q6))
                     # The joint information has to be sent to the robot as a list of integers
                     umirobot_smr.send_qd(rad2deg(q_temp).astype(int).tolist())
                 else:

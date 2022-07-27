@@ -47,7 +47,7 @@ class UMIRobotCSimRobot:
             deg2rad([0, -90, 0, 0, 0]),
             np.array([24.50, 0, 0, 123.33 + 41.86, 0]) / 1000.0,
             np.array([0, 105.8 - 24.50, 0, 0, 0]) / 1000.0,
-            deg2rad([-90, 180, 90, -90, 0]),
+            deg2rad([-90, 180, 90, 90, 0]),
             [0, 0, 0, 0, 0]
         ])
         robot = DQ_SerialManipulatorDH(dh_matrix)
