@@ -25,7 +25,8 @@ from PyQt6 import QtCore
 from PyQt6.QtWidgets import QApplication, QWidget
 
 KEYPRESS_T_DELTA = 0.005
-KEYPRESS_GRIP_DELTA = 0.0872664626
+KEYPRESS_GRIP_DELTA = np.radians(5)
+
 
 class ControllerUI(QWidget):
     def __init__(self, args_in):
@@ -39,7 +40,7 @@ class ControllerUI(QWidget):
         self.r_offset = np.zeros([4])
         self.r_offset[0] = 1
         self.gripper = 0
-        self.init_args["controller_sm_manager"].send_data(self.t_offset,  self.r_offset, self.gripper)
+        self.init_args["controller_sm_manager"].send_data(self.t_offset, self.r_offset, self.gripper)
 
     def load_ui(self):
         path = os.path.join(os.path.dirname(__file__), "form.ui")
@@ -69,7 +70,7 @@ class ControllerUI(QWidget):
         elif event.key() == QtCore.Qt.Key.Key_Enter:
             print("Got Enter")
 
-        self.init_args["controller_sm_manager"].send_data(self.t_offset,  self.r_offset, self.gripper)
+        self.init_args["controller_sm_manager"].send_data(self.t_offset, self.r_offset, self.gripper)
         event.accept()
 
     def closeWindows(self):
