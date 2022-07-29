@@ -54,7 +54,7 @@ class ControllerUI(QWidget):
         # r_init = dql.DQ([1])  # np.sin(np.radians(90/2))+np.cos(np.radians(90/2))*dql.j_
         self.r_offset = r_init.vec4()
 
-        dself.gripper = 0
+        self.gripper = 0
         self.init_args["controller_sm_manager"].send_data(self.t_offset, self.r_offset, self.gripper)
 
     def load_ui(self):

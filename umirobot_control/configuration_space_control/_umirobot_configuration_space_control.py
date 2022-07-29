@@ -15,8 +15,8 @@ from dqrobotics.interfaces.vrep import DQ_VrepInterface as DQ_CoppeliaSimInterfa
 from umirobot_control.commons import UMIRobotCSimRobot, normalize_potentiometer_values
 
 configuration = {
-    "use_real_umirobot": False,
-    "umirobot_port": "COM3"
+    "use_real_umirobot": True,
+    "umirobot_port": "COM7"
 }
 
 
@@ -55,6 +55,11 @@ def control_loop(umirobot_smr, cfg):
         # Initialize q_init from the CoppeliaSim state
         q_init = umirobot_csim.get_q_from_csim()
 
+        potentiometer_values = umirobot_smr.get_potentiometer_values()
+        print("task_space_control::Waiting for Arduino to be ready")
+        while not umirobot_smr.get_shutdown_flag() and None in potentiometer_values:
+            potentiometer_values = umirobot_smr.get_potentiometer_values()
+
         # Some info for the user
         print("configuration_space_control::Ready to start. ")
         print("configuration_space_control::Use CTRL+C to finish cleanly.")
@@ -80,6 +85,10 @@ def control_loop(umirobot_smr, cfg):
             qd = get_qd(potentiometer_values=potentiometer_values,
                         digital_in_values=digital_in_values)
 
+            umirobot_csim.send_q_to_csim(qd[:5])
+            umirobot_csim.send_gripper_value_to_csim(qd[5])
+            # umirobot_csim.show_x_in_csim(umirobot_controller.get_last_robot_pose())
+            # print("loop")
             # Update real robot if needed
             if cfg["use_real_umirobot"]:
                 if umirobot_smr.is_open():
